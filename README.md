@@ -9,6 +9,8 @@ Define a YAML serialization of Java POJOs via simple Java Annotations. Supported
  - Java Collections and Maps
  - Lists and Arrays
 
+This is implemented using [SnakeYAML](https://code.google.com/p/snakeyaml/)
+
 Example Java code:
 
 
