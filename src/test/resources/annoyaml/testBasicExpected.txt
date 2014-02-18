@@ -1,0 +1,23 @@
+person::children:
+- person::children: []
+  person::relatives: {}
+  person::name: child1
+- person::children: []
+  person::relatives: {}
+  person::name: child2
+person::relatives:
+  cousin1:
+    person::children: []
+    person::relatives: {}
+    person::name: cousin1 lastname
+  cousin2:
+    person::children:
+    - person::children: []
+      person::relatives: {}
+      person::name: cousin2.child1
+    - person::children: []
+      person::relatives: {}
+      person::name: cousin2.child2
+    person::relatives: {}
+    person::name: cousin2
+person::name: Parent
