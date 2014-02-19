@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
 public @interface YAML {
 	String value();
 	boolean encrypt() default false;
+	Class<?> targetType() default YAMLTargetTypeUnspecified.class;
 }

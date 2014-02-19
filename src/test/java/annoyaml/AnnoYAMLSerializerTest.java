@@ -60,7 +60,6 @@ public class AnnoYAMLSerializerTest {
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		serializer.getYamlConfiguration().setEncryptor(encryptor);
 		String result = serializer.serialize(person);
-		System.out.println(result);
 		assertEquals(readClasspathFile("testEncryptedFakeEncryptorSetExpected.txt"), result);
 	}
 	

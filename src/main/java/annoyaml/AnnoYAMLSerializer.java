@@ -21,6 +21,8 @@ import org.yaml.snakeyaml.Yaml;
 import annoyaml.annotation.YAML;
 import annoyaml.annotation.YAMLSerializable;
 import annoyaml.annotation.YAMLSkip;
+import annoyaml.exception.AnnoYAMLException;
+import annoyaml.util.AnnoYAMLUtil;
 
 public class AnnoYAMLSerializer {
 	
@@ -45,6 +47,7 @@ public class AnnoYAMLSerializer {
 	public Map<String, Object> serializeToMap(Object o) {
 		return serializeToMap(new IdentityHashMap<Object, Boolean>(), o);
 	}
+	@SuppressWarnings("rawtypes")
 	public Map<String, Object> serializeToMap(IdentityHashMap<Object, Boolean> cycleCheck, Object o) {
 		Map<String, Object> yamlMap = new HashMap<String, Object>();
 
@@ -64,7 +67,7 @@ public class AnnoYAMLSerializer {
 		try {
 			beanInfo = Introspector.getBeanInfo(o.getClass());
 		} catch (IntrospectionException e) {
-			throw new RuntimeException(e);
+			throw new AnnoYAMLException(e);
 		}
 
 		Class<?> type = o.getClass();
@@ -87,7 +90,7 @@ public class AnnoYAMLSerializer {
 			}
 			
 			Method method = descriptor.getReadMethod();
-			Field field = this.resolveField(type, name);
+			Field field = AnnoYAMLUtil.resolveField(type, name);
 
 			YAML yamlAnnotation = method.getAnnotation(YAML.class);
 			YAMLSerializable serializableAnnotation = childType.getAnnotation(YAMLSerializable.class);
@@ -117,12 +120,17 @@ public class AnnoYAMLSerializer {
 			if (value == null) {
 				continue;
 			}
+			
+			// prevent redoing the same values
+			if (cycleCheck.get(value) != null) {
+				continue;
+			}
 
 			// recursively descend into further classes
 			// marked with the PuppetSerializable annotation
 			if (serializableAnnotation != null) {
 				Map<String, Object> subMap = serializeToMap(cycleCheck, value);
-				subMap.put(yamlAnnotation.value(), subMap);
+				yamlMap.put(yamlAnnotation.value(), subMap);
 			} else if (yamlAnnotation != null) {
 				if (value instanceof Collection) {
 					List<Object> objects = new ArrayList<Object>();
@@ -137,6 +145,7 @@ public class AnnoYAMLSerializer {
 					}
 					yamlMap.put(yamlAnnotation.value(), objects);
 				} else if (value instanceof Map) {
+					@SuppressWarnings("unchecked")
 					Map<Object, Object> inputMap = (Map<Object, Object>)value;
 					Map<Object, Object> outputMap = new HashMap<Object, Object>();
 					for (Map.Entry<Object, Object> entry : inputMap.entrySet()) {
@@ -144,11 +153,11 @@ public class AnnoYAMLSerializer {
 					}
 					yamlMap.put(yamlAnnotation.value(), outputMap);
 				} else {
-					String lineString = value.toString();
+					Object resultValue = value;
 					if (yamlAnnotation.encrypt() && yamlConfiguration.getEncryptor() != null) {
-						lineString = yamlConfiguration.getEncryptor().encrypt(lineString);
+						resultValue = yamlConfiguration.getEncryptor().encrypt(resultValue.toString());
 					}
-					yamlMap.put(yamlAnnotation.value(), lineString);
+					yamlMap.put(yamlAnnotation.value(), resultValue);
 				}
 			}
 		}
@@ -189,30 +198,6 @@ public class AnnoYAMLSerializer {
 		}
 
 		return value;
-	}
-
-	private Field resolveField(Class<?> inputClass, String fieldName) {
-		if (Class.class.equals(inputClass) || inputClass == null
-				|| inputClass.isInterface()) {
-			return null;
-		}
-
-		Field field = null;
-
-		try {
-			field = inputClass.getDeclaredField(fieldName);
-			field.setAccessible(true);
-		} catch (SecurityException e) {
-			throw new RuntimeException(e);
-		} catch (NoSuchFieldException e) {
-			// ignore
-		}
-
-		if (field == null) {
-			field = this.resolveField(inputClass.getSuperclass(), fieldName);
-		}
-
-		return field;
 	}
 
 	private boolean isYAMLSerializable(Object o) {
