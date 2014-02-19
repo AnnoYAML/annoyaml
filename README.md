@@ -1,7 +1,7 @@
 annoyaml
 ========
 
-Annotation based YAML Serializer (Write-Only)
+Annotation based YAML Serializer
 
 Define a YAML serialization of Java POJOs via simple Java Annotations. Supported types include:
  
