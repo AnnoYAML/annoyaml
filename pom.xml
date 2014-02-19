@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>annoyaml</groupId>
 	<artifactId>annoyaml</artifactId>
-	<version>1.0.0</version>
+	<version>1.0.1-SNAPSHOT</version>
 	<description>AnnoYAML provides a simplified API for serializing an object graph to YAML based upon a small set of annotations</description>
 
 	<dependencies>
