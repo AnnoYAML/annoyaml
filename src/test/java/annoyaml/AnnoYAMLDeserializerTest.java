@@ -81,7 +81,6 @@ public class AnnoYAMLDeserializerTest {
 		
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(m);
-		System.out.println(result);
 		AnnoYAMLDeserializer deserializer = new AnnoYAMLDeserializer();
 		PrimitivesModel deserialized = deserializer.deserialize(PrimitivesModel.class, result);
 		

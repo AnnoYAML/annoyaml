@@ -9,6 +9,8 @@ import java.io.InputStream;
 import org.junit.Test;
 
 import annoyaml.test.model.Person;
+import annoyaml.test.model.SampleFlattenChildModel;
+import annoyaml.test.model.SampleFlattenModel;
 
 public class AnnoYAMLSerializerTest {
 
@@ -61,6 +63,21 @@ public class AnnoYAMLSerializerTest {
 		serializer.getYamlConfiguration().setEncryptor(encryptor);
 		String result = serializer.serialize(person);
 		assertEquals(readClasspathFile("testEncryptedFakeEncryptorSetExpected.txt"), result);
+	}
+	
+	@Test
+	public void testFlattenedModel() throws Exception {
+		SampleFlattenModel m = new SampleFlattenModel();
+		m.setName("namevalue");
+		SampleFlattenChildModel childModel = new SampleFlattenChildModel();
+		childModel.setValue1("1");
+		childModel.setValue2("2");
+		childModel.setValue3(3);
+		m.setChildModel(childModel);
+		
+		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
+		String result = serializer.serialize(m);
+		assertEquals(readClasspathFile("flattenTestExpected.txt"), result);
 	}
 	
 	private String readClasspathFile(String file) throws IOException {

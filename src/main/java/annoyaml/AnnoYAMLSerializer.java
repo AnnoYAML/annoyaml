@@ -19,6 +19,7 @@ import java.util.Map;
 import org.yaml.snakeyaml.Yaml;
 
 import annoyaml.annotation.YAML;
+import annoyaml.annotation.YAMLFlatten;
 import annoyaml.annotation.YAMLSerializable;
 import annoyaml.annotation.YAMLSkip;
 import annoyaml.exception.AnnoYAMLException;
@@ -37,19 +38,19 @@ public class AnnoYAMLSerializer {
 	}
 	
 	public String serialize(Object o) {
-		Map<String, Object> map = serializeToMap(o);
+		Map<Object, Object> map = serializeToMap(o);
 		Yaml yaml = new Yaml();
 		StringWriter sw = new StringWriter();
 		yaml.dump(map, sw);
 		return sw.toString();
 	}
 	
-	public Map<String, Object> serializeToMap(Object o) {
+	public Map<Object, Object> serializeToMap(Object o) {
 		return serializeToMap(new IdentityHashMap<Object, Boolean>(), o);
 	}
 	@SuppressWarnings("rawtypes")
-	public Map<String, Object> serializeToMap(IdentityHashMap<Object, Boolean> cycleCheck, Object o) {
-		Map<String, Object> yamlMap = new HashMap<String, Object>();
+	public Map<Object, Object> serializeToMap(IdentityHashMap<Object, Boolean> cycleCheck, Object o) {
+		Map<Object, Object> yamlMap = new HashMap<Object, Object>();
 
 		// Make sure we haven't seen this object before (prevents cycles)
 		if (cycleCheck.get(o) != null) {
@@ -93,6 +94,7 @@ public class AnnoYAMLSerializer {
 			Field field = AnnoYAMLUtil.resolveField(type, name);
 
 			YAML yamlAnnotation = method.getAnnotation(YAML.class);
+			YAMLFlatten yamlFlatten = method.getAnnotation(YAMLFlatten.class);
 			YAMLSerializable serializableAnnotation = childType.getAnnotation(YAMLSerializable.class);
 
 			// if we found the field, then use it
@@ -105,6 +107,9 @@ public class AnnoYAMLSerializer {
 				// if we didn't get a method annotation, check for a field one
 				if (yamlAnnotation == null) {
 					yamlAnnotation = field.getAnnotation(YAML.class);
+				}
+				if (yamlFlatten == null) {
+					yamlFlatten = field.getAnnotation(YAMLFlatten.class);
 				}
 			}
 
@@ -129,8 +134,12 @@ public class AnnoYAMLSerializer {
 			// recursively descend into further classes
 			// marked with the PuppetSerializable annotation
 			if (serializableAnnotation != null) {
-				Map<String, Object> subMap = serializeToMap(cycleCheck, value);
-				yamlMap.put(yamlAnnotation.value(), subMap);
+				Map<Object, Object> subMap = serializeToMap(cycleCheck, value);
+				if (yamlFlatten != null) {
+					yamlMap.putAll(subMap);
+				} else {
+					yamlMap.put(yamlAnnotation.value(), subMap);
+				}
 			} else if (yamlAnnotation != null) {
 				if (value instanceof Collection) {
 					List<Object> objects = new ArrayList<Object>();
@@ -151,7 +160,11 @@ public class AnnoYAMLSerializer {
 					for (Map.Entry<Object, Object> entry : inputMap.entrySet()) {
 						outputMap.put(entry.getKey(), serializeToMap(cycleCheck, entry.getValue()));
 					}
-					yamlMap.put(yamlAnnotation.value(), outputMap);
+					if (yamlFlatten != null) {
+						yamlMap.putAll(outputMap);
+					} else {
+						yamlMap.put(yamlAnnotation.value(), outputMap);
+					}
 				} else {
 					Object resultValue = value;
 					if (yamlAnnotation.encrypt() && yamlConfiguration.getEncryptor() != null) {
