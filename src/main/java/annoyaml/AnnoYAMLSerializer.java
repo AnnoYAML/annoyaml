@@ -176,7 +176,11 @@ public class AnnoYAMLSerializer {
 						resultValue = serializeToMap(cycleCheck, resultValue);
 						yamlMap.put(yamlAnnotation.value(), resultValue);
 					} else {
-						resultValue = value.toString();
+						if (value.getClass().isEnum()) {
+							resultValue = value.toString();
+						} else {
+							resultValue = value;
+						}
 						if (yamlAnnotation.encrypt() && yamlConfiguration.getEncryptor() != null) {
 							resultValue = yamlConfiguration.getEncryptor().encrypt(resultValue.toString());
 						}

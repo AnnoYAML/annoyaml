@@ -9,6 +9,7 @@ import java.io.InputStream;
 
 import org.junit.Test;
 
+import annoyaml.test.model.BooleanTest;
 import annoyaml.test.model.Person;
 import annoyaml.test.model.SampleFlattenChildModel;
 import annoyaml.test.model.SampleFlattenModel;
@@ -27,6 +28,25 @@ public class AnnoYAMLSerializerTest {
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(parent);
 		assertEquals(readClasspathFile("testBasicExpected.txt"), result);
+	}
+	
+	@Test
+	public void testBoolean() throws Exception {
+		BooleanTest t = new BooleanTest();
+		t.setObjectBool(true);
+		t.setPrimitiveBool(true);
+		
+		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
+		String result = serializer.serialize(t);
+		assertTrue(result.contains("primitiveBool: true"));
+		assertTrue(result.contains("objectBool: true"));
+		
+		t.setObjectBool(false);
+		t.setPrimitiveBool(false);
+		
+		result = serializer.serialize(t);
+		assertTrue(result.contains("primitiveBool: false"));
+		assertTrue(result.contains("objectBool: false"));
 	}
 	
 	@Test
