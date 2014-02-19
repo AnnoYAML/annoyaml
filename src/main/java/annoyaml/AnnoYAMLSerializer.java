@@ -135,7 +135,7 @@ public class AnnoYAMLSerializer {
 			// marked with the PuppetSerializable annotation
 			if (serializableAnnotation != null) {
 				Map<Object, Object> subMap = serializeToMap(cycleCheck, value);
-				if (yamlFlatten != null) {
+				if (yamlFlatten != null || yamlAnnotation == null) {
 					yamlMap.putAll(subMap);
 				} else {
 					yamlMap.put(yamlAnnotation.value(), subMap);
@@ -144,13 +144,15 @@ public class AnnoYAMLSerializer {
 				if (value instanceof Collection) {
 					List<Object> objects = new ArrayList<Object>();
 					for (Object subVal : (Collection)value) {
-						objects.add(serializeToMap(cycleCheck, subVal));
+						Object entryValue = isBasicType(subVal) ? subVal : serializeToMap(cycleCheck, subVal);
+						objects.add(entryValue);
 					}
 					yamlMap.put(yamlAnnotation.value(), objects);
 				} else if (value instanceof Object[]) {
 					List<Object> objects = new ArrayList<Object>();
 					for (Object subVal : (Object[])value) {
-						objects.add(serializeToMap(cycleCheck, subVal));
+						Object entryValue = isBasicType(subVal) ? subVal : serializeToMap(cycleCheck, subVal);
+						objects.add(entryValue);
 					}
 					yamlMap.put(yamlAnnotation.value(), objects);
 				} else if (value instanceof Map) {
@@ -158,23 +160,44 @@ public class AnnoYAMLSerializer {
 					Map<Object, Object> inputMap = (Map<Object, Object>)value;
 					Map<Object, Object> outputMap = new HashMap<Object, Object>();
 					for (Map.Entry<Object, Object> entry : inputMap.entrySet()) {
-						outputMap.put(entry.getKey(), serializeToMap(cycleCheck, entry.getValue()));
+						Object entryValue = isBasicType(entry.getValue()) ? entry.getValue() : serializeToMap(cycleCheck, entry.getValue()); 
+						outputMap.put(entry.getKey(), entryValue);
 					}
 					if (yamlFlatten != null) {
-						yamlMap.putAll(outputMap);
+						for (Map.Entry<Object, Object> entry : outputMap.entrySet()) {
+							yamlMap.put(yamlAnnotation.value() + "::" + entry.getKey(), entry.getValue());
+						}
 					} else {
 						yamlMap.put(yamlAnnotation.value(), outputMap);
 					}
 				} else {
 					Object resultValue = value;
-					if (yamlAnnotation.encrypt() && yamlConfiguration.getEncryptor() != null) {
-						resultValue = yamlConfiguration.getEncryptor().encrypt(resultValue.toString());
+					if (isYAMLSerializable(resultValue)) {
+						resultValue = serializeToMap(cycleCheck, resultValue);
+						yamlMap.put(yamlAnnotation.value(), resultValue);
+					} else {
+						resultValue = value.toString();
+						if (yamlAnnotation.encrypt() && yamlConfiguration.getEncryptor() != null) {
+							resultValue = yamlConfiguration.getEncryptor().encrypt(resultValue.toString());
+						}
+						yamlMap.put(yamlAnnotation.value(), resultValue);
 					}
-					yamlMap.put(yamlAnnotation.value(), resultValue);
 				}
 			}
 		}
 		return yamlMap;
+	}
+	
+	private boolean isBasicType(Object val) {
+		return val == null || 
+				val instanceof String || 
+				val instanceof Boolean || 
+				val instanceof Byte || 
+				val instanceof Character || 
+				val instanceof Long || 
+				val instanceof Double || 
+				val instanceof Float || 
+				val instanceof Integer;
 	}
 
 	/**

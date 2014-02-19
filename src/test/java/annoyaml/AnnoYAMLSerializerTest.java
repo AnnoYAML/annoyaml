@@ -1,6 +1,7 @@
 package annoyaml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -11,6 +12,8 @@ import org.junit.Test;
 import annoyaml.test.model.Person;
 import annoyaml.test.model.SampleFlattenChildModel;
 import annoyaml.test.model.SampleFlattenModel;
+import annoyaml.test.model.SampleWithEnum;
+import annoyaml.test.model.SampleWithEnum.eTestEnum;
 
 public class AnnoYAMLSerializerTest {
 
@@ -24,6 +27,17 @@ public class AnnoYAMLSerializerTest {
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(parent);
 		assertEquals(readClasspathFile("testBasicExpected.txt"), result);
+	}
+	
+	@Test
+	public void testEnum() throws Exception {
+		SampleWithEnum m = new SampleWithEnum();
+		m.setTestEnum(eTestEnum.valuea);
+
+		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
+		String result = serializer.serialize(m);
+		
+		assertEquals("{'SampleWithEnum::testEnum': valuea}", result.trim());
 	}
 	
 	@Test
@@ -78,6 +92,18 @@ public class AnnoYAMLSerializerTest {
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(m);
 		assertEquals(readClasspathFile("flattenTestExpected.txt"), result);
+	}
+	
+	@Test
+	public void testBasicMapSerialization() throws Exception {
+		Person person = new Person();
+		person.getBasicMap().put("a", 1.0);
+		person.getBasicMap().put("b", 2.0);
+		
+		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
+		String result = serializer.serialize(person);
+		assertTrue(result.contains("b: 2.0"));
+		assertTrue(result.contains("a: 1.0"));
 	}
 	
 	private String readClasspathFile(String file) throws IOException {

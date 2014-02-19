@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import annoyaml.annotation.YAML;
+import annoyaml.annotation.YAMLFlatten;
 import annoyaml.annotation.YAMLSerializable;
 
 @YAMLSerializable
@@ -20,6 +21,10 @@ public class Person {
 	
 	@YAML(value="person::relatives", targetType=Person.class)
 	private Map<String, Person> relatives = new HashMap<String, Person>();
+	
+	@YAML(value="basicmap")
+	@YAMLFlatten
+	private Map<String, Double> basicMap = new HashMap<String, Double>();
 	
 	@YAML(value="person::parent")
 	private Person parent;
@@ -74,6 +79,12 @@ public class Person {
 	}
 	public void setMiniMe(Person miniMe) {
 		this.miniMe = miniMe;
+	}
+	public Map<String, Double> getBasicMap() {
+		return basicMap;
+	}
+	public void setBasicMap(Map<String, Double> basicMap) {
+		this.basicMap = basicMap;
 	}
 	
 	@Override
@@ -131,7 +142,8 @@ public class Person {
 	@Override
 	public String toString() {
 		return "Person [name=" + name + ", children=" + children
-				+ ", relatives=" + relatives + ", encryptedField="
-				+ encryptedField + ", miniMe=" + miniMe + "]";
-	}	
+				+ ", relatives=" + relatives + ", basicMap=" + basicMap
+				+ ", encryptedField=" + encryptedField
+				+ ", miniMe=" + miniMe + "]";
+	}
 }
