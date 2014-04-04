@@ -1,1 +1,0 @@
-{name: namevalue, 'flattenedchild::value2': '2', 'flattenedchild::value3': 3.0, 'flattenedchild::value1': '1'}

@@ -1,13 +1,18 @@
 package annoyaml;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
+import org.yaml.snakeyaml.Yaml;
 
 import annoyaml.test.model.BooleanTest;
 import annoyaml.test.model.Person;
@@ -27,7 +32,32 @@ public class AnnoYAMLSerializerTest {
 		
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(parent);
-		assertEquals(readClasspathFile("testBasicExpected.txt"), result);
+		
+		Yaml yaml = new Yaml();
+		Map<Object, Object> loadedYAML = (Map<Object, Object>)yaml.load(result);
+		assertEquals("Parent", loadedYAML.get("person::name"));
+		List<Map<Object, Object>> children = (List<Map<Object, Object>>)loadedYAML.get("person::children");
+		Map<Object, Object> child1Map = children.get(0);
+		assertEquals("child1", child1Map.get("person::name"));
+		Map<Object, Object> child2Map = children.get(1);
+		assertEquals("child2", child2Map.get("person::name"));
+		
+		Map<String, Object> relativesMap = (Map<String, Object>)loadedYAML.get("person::relatives");
+		Map<Object, Object> cousin1 = (Map<Object, Object>)relativesMap.get("cousin1");
+		assertEquals("cousin1 lastname", cousin1.get("person::name"));
+		assertNotNull(cousin1.get("person::children"));
+		assertTrue(cousin1.get("person::children") instanceof List);
+		List<Object> cousin1Children = (List<Object>)cousin1.get("person::children");
+		assertTrue(cousin1Children.isEmpty());
+		
+		Map<Object, Object> cousin2 = (Map<Object, Object>)relativesMap.get("cousin2");
+		assertEquals("cousin2", cousin2.get("person::name"));
+		List<Map<Object, Object>> cousin2Children = (List<Map<Object, Object>>)cousin2.get("person::children");
+		assertEquals(2, cousin2Children.size());
+		Map<Object, Object> cousin2Child1 = cousin2Children.get(0);
+		assertEquals("cousin2.child1", cousin2Child1.get("person::name"));
+		Map<Object, Object> cousin2Child2 = cousin2Children.get(1);
+		assertEquals("cousin2.child2", cousin2Child2.get("person::name"));
 	}
 	
 	@Test
@@ -69,7 +99,15 @@ public class AnnoYAMLSerializerTest {
 		
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(parent);
-		assertEquals(readClasspathFile("testCyclic.txt"), result);
+		
+		Yaml yaml = new Yaml();
+		Map<Object, Object> loadedYAML = (Map<Object, Object>)yaml.load(result);
+		assertEquals("Parent", loadedYAML.get("person::name"));
+		
+		List<Map<Object, Object>> children = (List<Map<Object, Object>>)loadedYAML.get("person::children");
+		Map<Object, Object> child1Map = children.get(0);
+		assertEquals("Child", child1Map.get("person::name"));
+		
 	}
 
 	@Test
@@ -79,7 +117,10 @@ public class AnnoYAMLSerializerTest {
 		
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(person);
-		assertEquals(readClasspathFile("testEncryptedNoEncryptorSetExpected.txt"), result);
+		
+		Yaml yaml = new Yaml();
+		Map<Object, Object> loadedYAML = (Map<Object, Object>)yaml.load(result);
+		assertEquals("myencryptedfield", loadedYAML.get("person::encryptedField"));
 	}
 
 	@Test
@@ -96,7 +137,10 @@ public class AnnoYAMLSerializerTest {
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		serializer.getYamlConfiguration().setEncryptor(encryptor);
 		String result = serializer.serialize(person);
-		assertEquals(readClasspathFile("testEncryptedFakeEncryptorSetExpected.txt"), result);
+		
+		Yaml yaml = new Yaml();
+		Map<Object, Object> loadedYAML = (Map<Object, Object>)yaml.load(result);
+		assertEquals("FAKEENCRYPTED", loadedYAML.get("person::encryptedField"));
 	}
 	
 	@Test
@@ -111,7 +155,13 @@ public class AnnoYAMLSerializerTest {
 		
 		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
 		String result = serializer.serialize(m);
-		assertEquals(readClasspathFile("flattenTestExpected.txt"), result);
+		
+		Yaml yaml = new Yaml();
+		Map<Object, Object> loadedYAML = (Map<Object, Object>)yaml.load(result);
+		assertEquals("namevalue", loadedYAML.get("name"));
+		assertEquals("1", loadedYAML.get("flattenedchild::value1"));
+		assertEquals("2", loadedYAML.get("flattenedchild::value2"));
+		assertEquals(3.0, loadedYAML.get("flattenedchild::value3"));
 	}
 	
 	@Test
@@ -125,17 +175,4 @@ public class AnnoYAMLSerializerTest {
 		assertTrue(result.contains("b: 2.0"));
 		assertTrue(result.contains("a: 1.0"));
 	}
-	
-	private String readClasspathFile(String file) throws IOException {
-		InputStream is = getClass().getResourceAsStream(file);
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		byte[] buffer = new byte[32768];
-		int bytesRead;
-		while ( (bytesRead = is.read(buffer)) != -1) {
-			bos.write(buffer, 0, bytesRead);
-		}
-		return new String(bos.toByteArray());
-	}
-	
-	
 }

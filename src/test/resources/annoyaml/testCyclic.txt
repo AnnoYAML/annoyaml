@@ -1,6 +1,0 @@
-person::children:
-- person::children: []
-  person::relatives: {}
-  person::name: Child
-person::relatives: {}
-person::name: Parent
