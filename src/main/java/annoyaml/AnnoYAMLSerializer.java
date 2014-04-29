@@ -130,11 +130,6 @@ public class AnnoYAMLSerializer {
 				continue;
 			}
 
-			// prevent redoing the same values
-			if (cycleCheck.cycleExists(value)) {
-				continue;
-			}
-
 			// recursively descend into further classes
 			// marked with the PuppetSerializable annotation
 			if (serializableAnnotation != null) {

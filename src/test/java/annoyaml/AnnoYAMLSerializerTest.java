@@ -14,6 +14,9 @@ import java.util.Map;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
 
+import annoyaml.annotation.YAML;
+import annoyaml.annotation.YAMLSerializable;
+import annoyaml.interceptor.ISerializationInterceptor;
 import annoyaml.test.model.BooleanTest;
 import annoyaml.test.model.Person;
 import annoyaml.test.model.SampleFlattenChildModel;
@@ -174,5 +177,55 @@ public class AnnoYAMLSerializerTest {
 		String result = serializer.serialize(person);
 		assertTrue(result.contains("b: 2.0"));
 		assertTrue(result.contains("a: 1.0"));
+	}
+	
+	public static class SerializationModifier implements ISerializationInterceptor {
+		public Object serialize(YAML yamlAnnotation, Object containingObject, java.lang.reflect.Method getterMethod, java.lang.reflect.Field field, String yamlFieldName, Object yamlFieldValue) {
+			if ("REMOVEME".equals(yamlFieldValue)) {
+				return null;
+			} else {
+				return "MODIFIED";
+			}
+		}
+	}
+	
+	@YAMLSerializable
+	public static class SampleForSerializationModifier {
+		@YAML(value="name", serializationInterceptors=SerializationModifier.class)
+		private String name;
+		
+		public String getName() {
+			return name;
+		}
+		public void setName(String name) {
+			this.name = name;
+		}
+	}
+	
+	@Test
+	public void testSerializationInterceptorModify() throws Exception {
+		
+		SampleForSerializationModifier sample = new SampleForSerializationModifier();
+		sample.setName("SampleName");
+		
+		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
+		String result = serializer.serialize(sample);
+		
+		AnnoYAMLDeserializer deserializer = new AnnoYAMLDeserializer();
+		SampleForSerializationModifier sampleResult = deserializer.deserialize(SampleForSerializationModifier.class, result);
+		assertEquals("MODIFIED", sampleResult.getName());
+	}
+	
+	@Test
+	public void testSerializationSkipProperty() throws Exception {
+		SampleForSerializationModifier sample = new SampleForSerializationModifier();
+		sample.setName("REMOVEME");
+		
+		AnnoYAMLSerializer serializer = new AnnoYAMLSerializer();
+		String result = serializer.serialize(sample);
+		
+		AnnoYAMLDeserializer deserializer = new AnnoYAMLDeserializer();
+		SampleForSerializationModifier sampleResult = deserializer.deserialize(SampleForSerializationModifier.class, result);
+		assertNull(sampleResult.getName());
 	}
 }
