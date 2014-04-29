@@ -21,6 +21,8 @@ import org.yaml.snakeyaml.error.YAMLException;
 import annoyaml.annotation.YAML;
 import annoyaml.annotation.YAMLTargetTypeUnspecified;
 import annoyaml.exception.AnnoYAMLException;
+import annoyaml.interceptor.IDeserializationInterceptor;
+import annoyaml.interceptor.ISerializationInterceptor;
 import annoyaml.util.ReflectionUtil;
 
 public class AnnoYAMLDeserializer {
@@ -80,6 +82,13 @@ public class AnnoYAMLDeserializer {
 			
 			if (yamlAnn != null && yamlAnn.value().equals(key)) {
 				Class expectedType = getExpectedType(field, writeMethod);
+				
+				Class<? extends IDeserializationInterceptor>[] interceptorClasses = yamlAnn.deserializationInterceptors();
+				for (Class<? extends IDeserializationInterceptor> interceptorClass : interceptorClasses) {
+					IDeserializationInterceptor deserializationInterceptor = ReflectionUtil.instantiateClass(interceptorClass);
+					value = deserializationInterceptor.deserialize(yamlAnn, obj, writeMethod, field, descriptor.getName(), value);
+				}
+				
 				if (Collection.class.isAssignableFrom(expectedType)) {
 					try {
 						Class actualExpectedType = expectedType;
