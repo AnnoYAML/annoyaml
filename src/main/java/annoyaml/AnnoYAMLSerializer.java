@@ -28,17 +28,17 @@ import annoyaml.util.CycleCheck;
 import annoyaml.util.ReflectionUtil;
 
 public class AnnoYAMLSerializer {
-	
+
 	private YAMLConfiguration yamlConfiguration;
-	
+
 	public AnnoYAMLSerializer() {
 		this.yamlConfiguration = new YAMLConfiguration();
 	}
-	
+
 	public AnnoYAMLSerializer(YAMLConfiguration yamlConfiguration) {
 		this.yamlConfiguration = yamlConfiguration;
 	}
-	
+
 	public String serialize(Object o) {
 		Map<Object, Object> map = serializeToMap(o);
 		Yaml yaml = new Yaml();
@@ -46,10 +46,11 @@ public class AnnoYAMLSerializer {
 		yaml.dump(map, sw);
 		return sw.toString();
 	}
-	
+
 	public Map<Object, Object> serializeToMap(Object o) {
 		return serializeToMap(new CycleCheck(), o);
 	}
+
 	@SuppressWarnings("rawtypes")
 	public Map<Object, Object> serializeToMap(CycleCheck cycleCheck, Object o) {
 		Map<Object, Object> yamlMap = new HashMap<Object, Object>();
@@ -61,15 +62,16 @@ public class AnnoYAMLSerializer {
 			cycleCheck.push();
 			cycleCheck.addObject(o);
 		}
-		
+
 		// Make sure object is marked YAMLSerializable
 		if (!isYAMLSerializable(o)) {
 			return yamlMap;
 		}
 
 		Class<?> type = o.getClass();
-		
-		PropertyDescriptor[] descriptors = ReflectionUtil.listPropertyDescriptors(o);
+
+		PropertyDescriptor[] descriptors = ReflectionUtil
+				.listPropertyDescriptors(o);
 		// Search all bean properties for YAML annotations
 		for (PropertyDescriptor descriptor : descriptors) {
 			String name = descriptor.getName();
@@ -85,22 +87,22 @@ public class AnnoYAMLSerializer {
 			if (descriptor.getReadMethod().getAnnotation(YAMLSkip.class) != null) {
 				continue;
 			}
-			
+
 			Method method = descriptor.getReadMethod();
 			Field field = ReflectionUtil.resolveField(type, name);
 
-			
 			YAML yamlAnnotation = method.getAnnotation(YAML.class);
 			YAMLFlatten yamlFlatten = method.getAnnotation(YAMLFlatten.class);
-			YAMLSerializable serializableAnnotation = childType.getAnnotation(YAMLSerializable.class);
+			YAMLSerializable serializableAnnotation = childType
+					.getAnnotation(YAMLSerializable.class);
 
 			// if we found the field, then use it
 			if (field != null) {
 				// check for skip and continue if found
-				if(field.getAnnotation(YAMLSkip.class) != null) {
+				if (field.getAnnotation(YAMLSkip.class) != null) {
 					continue;
 				}
-				
+
 				// if we didn't get a method annotation, check for a field one
 				if (yamlAnnotation == null) {
 					yamlAnnotation = field.getAnnotation(YAML.class);
@@ -110,7 +112,8 @@ public class AnnoYAMLSerializer {
 				}
 			}
 
-			// If no yaml annotation exists and the child is not yaml serializable,
+			// If no yaml annotation exists and the child is not yaml
+			// serializable,
 			// then continue
 			if (yamlAnnotation == null && serializableAnnotation == null) {
 				continue;
@@ -118,17 +121,20 @@ public class AnnoYAMLSerializer {
 
 			Object value = this.getValueOfProperty(o, method, field);
 
-			Class<? extends ISerializationInterceptor>[] interceptorClasses = yamlAnnotation.serializationInterceptors();
+			Class<? extends ISerializationInterceptor>[] interceptorClasses = yamlAnnotation
+					.serializationInterceptors();
 			for (Class<? extends ISerializationInterceptor> interceptorClass : interceptorClasses) {
-				ISerializationInterceptor serializationInterceptor = ReflectionUtil.instantiateClass(interceptorClass);
-				value = serializationInterceptor.serialize(yamlAnnotation, o, method, field, name, value);
+				ISerializationInterceptor serializationInterceptor = ReflectionUtil
+						.instantiateClass(interceptorClass);
+				value = serializationInterceptor.serialize(yamlAnnotation, o,
+						method, field, name, value);
 			}
-			
+
 			// Ignore null values
 			if (value == null) {
 				continue;
 			}
-			
+
 			// prevent redoing the same values
 			if (cycleCheck.cycleExists(value)) {
 				continue;
@@ -146,29 +152,36 @@ public class AnnoYAMLSerializer {
 			} else if (yamlAnnotation != null) {
 				if (value instanceof Collection) {
 					List<Object> objects = new ArrayList<Object>();
-					for (Object subVal : (Collection)value) {
-						Object entryValue = isBasicType(subVal) ? subVal : serializeToMap(cycleCheck, subVal);
+					for (Object subVal : (Collection) value) {
+						Object entryValue = isBasicType(subVal) ? subVal
+								: serializeToMap(cycleCheck, subVal);
 						objects.add(entryValue);
 					}
 					yamlMap.put(yamlAnnotation.value(), objects);
 				} else if (value instanceof Object[]) {
 					List<Object> objects = new ArrayList<Object>();
-					for (Object subVal : (Object[])value) {
-						Object entryValue = isBasicType(subVal) ? subVal : serializeToMap(cycleCheck, subVal);
+					for (Object subVal : (Object[]) value) {
+						Object entryValue = isBasicType(subVal) ? subVal
+								: serializeToMap(cycleCheck, subVal);
 						objects.add(entryValue);
 					}
 					yamlMap.put(yamlAnnotation.value(), objects);
 				} else if (value instanceof Map) {
 					@SuppressWarnings("unchecked")
-					Map<Object, Object> inputMap = (Map<Object, Object>)value;
+					Map<Object, Object> inputMap = (Map<Object, Object>) value;
 					Map<Object, Object> outputMap = new HashMap<Object, Object>();
 					for (Map.Entry<Object, Object> entry : inputMap.entrySet()) {
-						Object entryValue = isBasicType(entry.getValue()) ? entry.getValue() : serializeToMap(cycleCheck, entry.getValue()); 
+						Object entryValue = isBasicType(entry.getValue()) ? entry
+								.getValue() : serializeToMap(cycleCheck,
+								entry.getValue());
 						outputMap.put(entry.getKey(), entryValue);
 					}
 					if (yamlFlatten != null) {
-						for (Map.Entry<Object, Object> entry : outputMap.entrySet()) {
-							yamlMap.put(yamlAnnotation.value() + "::" + entry.getKey(), entry.getValue());
+						for (Map.Entry<Object, Object> entry : outputMap
+								.entrySet()) {
+							yamlMap.put(
+									yamlAnnotation.value() + "::"
+											+ entry.getKey(), entry.getValue());
 						}
 					} else {
 						yamlMap.put(yamlAnnotation.value(), outputMap);
@@ -184,8 +197,10 @@ public class AnnoYAMLSerializer {
 						} else {
 							resultValue = value;
 						}
-						if (yamlAnnotation.encrypt() && yamlConfiguration.getEncryptor() != null) {
-							resultValue = yamlConfiguration.getEncryptor().encrypt(resultValue.toString());
+						if (yamlAnnotation.encrypt()
+								&& yamlConfiguration.getEncryptor() != null) {
+							resultValue = yamlConfiguration.getEncryptor()
+									.encrypt(resultValue.toString());
 						}
 						yamlMap.put(yamlAnnotation.value(), resultValue);
 					}
@@ -194,22 +209,17 @@ public class AnnoYAMLSerializer {
 		}
 		return yamlMap;
 	}
-	
+
 	private boolean isBasicType(Object val) {
-		return val == null || 
-				val instanceof String || 
-				val instanceof Boolean || 
-				val instanceof Byte || 
-				val instanceof Character || 
-				val instanceof Long || 
-				val instanceof Double || 
-				val instanceof Float || 
-				val instanceof Integer;
+		return val == null || val instanceof String || val instanceof Boolean
+				|| val instanceof Byte || val instanceof Character
+				|| val instanceof Long || val instanceof Double
+				|| val instanceof Float || val instanceof Integer;
 	}
 
 	/**
-	 * Retrieve the value from the getter method or the field (depending
-	 * upon which is available)
+	 * Retrieve the value from the getter method or the field (depending upon
+	 * which is available)
 	 * 
 	 * @param o
 	 * @param method
@@ -244,14 +254,15 @@ public class AnnoYAMLSerializer {
 	}
 
 	private boolean isYAMLSerializable(Object o) {
-		Annotation annotation = o.getClass().getAnnotation(YAMLSerializable.class);
+		Annotation annotation = o.getClass().getAnnotation(
+				YAMLSerializable.class);
 		return annotation != null;
 	}
-	
+
 	public void setYamlConfiguration(YAMLConfiguration yamlConfiguration) {
 		this.yamlConfiguration = yamlConfiguration;
 	}
-	
+
 	public YAMLConfiguration getYamlConfiguration() {
 		return yamlConfiguration;
 	}
