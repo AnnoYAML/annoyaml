@@ -21,7 +21,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 import annoyaml.annotation.YAML;
 import annoyaml.annotation.YAMLTargetTypeUnspecified;
 import annoyaml.exception.AnnoYAMLException;
-import annoyaml.util.AnnoYAMLUtil;
+import annoyaml.util.ReflectionUtil;
 
 public class AnnoYAMLDeserializer {
 
@@ -63,16 +63,10 @@ public class AnnoYAMLDeserializer {
 			return;
 		}
 		
-		final BeanInfo beanInfo;
-		try {
-			beanInfo = Introspector.getBeanInfo(obj.getClass());
-		} catch (IntrospectionException e) {
-			throw new AnnoYAMLException(e);
-		}
 		Class<?> type = obj.getClass();
-		PropertyDescriptor[] descriptors = beanInfo.getPropertyDescriptors();
+		PropertyDescriptor[] descriptors = ReflectionUtil.listPropertyDescriptors(obj);
 		for (PropertyDescriptor descriptor : descriptors) {
-			Field field = AnnoYAMLUtil.resolveField(type, descriptor.getName());
+			Field field = ReflectionUtil.resolveField(type, descriptor.getName());
 			Method writeMethod = descriptor.getWriteMethod();
 			Method readMethod = descriptor.getReadMethod();
 			

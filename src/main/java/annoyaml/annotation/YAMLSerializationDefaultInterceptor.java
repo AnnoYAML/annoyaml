@@ -8,12 +8,8 @@ import annoyaml.interceptor.ISerializationInterceptor;
 public class YAMLSerializationDefaultInterceptor implements
 		ISerializationInterceptor {
 	public Object serialize(YAML yamlAnnotation, Object containingObject,
-			Field field, String yamlFieldName, Object yamlFieldValue) {
-		return null;
-	}
-
-	public Object serialize(YAML yamlAnnotation, Object containingObject,
-			Method getterMethod, String yamlFieldName, Object yamlFieldValue) {
-		return null;
+			Method getterMethod, Field field, String yamlFieldName,
+			Object yamlFieldValue) {
+		return yamlFieldValue;
 	}
 }

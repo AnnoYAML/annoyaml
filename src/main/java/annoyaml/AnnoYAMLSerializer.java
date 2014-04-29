@@ -23,7 +23,9 @@ import annoyaml.annotation.YAMLFlatten;
 import annoyaml.annotation.YAMLSerializable;
 import annoyaml.annotation.YAMLSkip;
 import annoyaml.exception.AnnoYAMLException;
-import annoyaml.util.AnnoYAMLUtil;
+import annoyaml.interceptor.ISerializationInterceptor;
+import annoyaml.util.CycleCheck;
+import annoyaml.util.ReflectionUtil;
 
 public class AnnoYAMLSerializer {
 	
@@ -46,17 +48,18 @@ public class AnnoYAMLSerializer {
 	}
 	
 	public Map<Object, Object> serializeToMap(Object o) {
-		return serializeToMap(new IdentityHashMap<Object, Boolean>(), o);
+		return serializeToMap(new CycleCheck(), o);
 	}
 	@SuppressWarnings("rawtypes")
-	public Map<Object, Object> serializeToMap(IdentityHashMap<Object, Boolean> cycleCheck, Object o) {
+	public Map<Object, Object> serializeToMap(CycleCheck cycleCheck, Object o) {
 		Map<Object, Object> yamlMap = new HashMap<Object, Object>();
 
 		// Make sure we haven't seen this object before (prevents cycles)
-		if (cycleCheck.get(o) != null) {
+		if (cycleCheck.cycleExists(o)) {
 			return yamlMap;
 		} else {
-			cycleCheck.put(o, true);
+			cycleCheck.push();
+			cycleCheck.addObject(o);
 		}
 		
 		// Make sure object is marked YAMLSerializable
@@ -64,16 +67,9 @@ public class AnnoYAMLSerializer {
 			return yamlMap;
 		}
 
-		final BeanInfo beanInfo;
-		try {
-			beanInfo = Introspector.getBeanInfo(o.getClass());
-		} catch (IntrospectionException e) {
-			throw new AnnoYAMLException(e);
-		}
-
 		Class<?> type = o.getClass();
-		PropertyDescriptor[] descriptors = beanInfo.getPropertyDescriptors();
-
+		
+		PropertyDescriptor[] descriptors = ReflectionUtil.listPropertyDescriptors(o);
 		// Search all bean properties for YAML annotations
 		for (PropertyDescriptor descriptor : descriptors) {
 			String name = descriptor.getName();
@@ -91,8 +87,9 @@ public class AnnoYAMLSerializer {
 			}
 			
 			Method method = descriptor.getReadMethod();
-			Field field = AnnoYAMLUtil.resolveField(type, name);
+			Field field = ReflectionUtil.resolveField(type, name);
 
+			
 			YAML yamlAnnotation = method.getAnnotation(YAML.class);
 			YAMLFlatten yamlFlatten = method.getAnnotation(YAMLFlatten.class);
 			YAMLSerializable serializableAnnotation = childType.getAnnotation(YAMLSerializable.class);
@@ -121,13 +118,19 @@ public class AnnoYAMLSerializer {
 
 			Object value = this.getValueOfProperty(o, method, field);
 
+			Class<? extends ISerializationInterceptor>[] interceptorClasses = yamlAnnotation.serializationInterceptors();
+			for (Class<? extends ISerializationInterceptor> interceptorClass : interceptorClasses) {
+				ISerializationInterceptor serializationInterceptor = ReflectionUtil.instantiateClass(interceptorClass);
+				value = serializationInterceptor.serialize(yamlAnnotation, o, method, field, name, value);
+			}
+			
 			// Ignore null values
 			if (value == null) {
 				continue;
 			}
 			
 			// prevent redoing the same values
-			if (cycleCheck.get(value) != null) {
+			if (cycleCheck.cycleExists(value)) {
 				continue;
 			}
 
