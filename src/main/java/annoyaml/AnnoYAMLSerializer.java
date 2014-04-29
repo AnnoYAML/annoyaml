@@ -1,8 +1,5 @@
 package annoyaml;
 
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.StringWriter;
 import java.lang.annotation.Annotation;
@@ -12,7 +9,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -22,7 +18,6 @@ import annoyaml.annotation.YAML;
 import annoyaml.annotation.YAMLFlatten;
 import annoyaml.annotation.YAMLSerializable;
 import annoyaml.annotation.YAMLSkip;
-import annoyaml.exception.AnnoYAMLException;
 import annoyaml.interceptor.ISerializationInterceptor;
 import annoyaml.util.CycleCheck;
 import annoyaml.util.ReflectionUtil;
